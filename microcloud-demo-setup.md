@@ -1,19 +1,19 @@
 # Microcloud setup
 
 ## Requirements
-  - Minimum Three nodes I used two xilinx boards kv260 and one mediatek board they were all running UC22 image.
+  - Minimum Three nodes(machines) are required. I used two xilinx boards kv260 and one mediatek board they were all running UC22 images(board specific images).
   - Need two separate network interfaces on each board . These interfaces need not be physical they can be virtual interfaces.
-  - One interface will act as management interface. This is how nodes communicate at the beginning to form the cluser.
+  - One interface will act as management interface. This is used by nodes to communicate at the beginning to form the cluser.
   - Second inetrface will be used for microcloud's internal traffic and it is required that  this interface of every node (that want to
     be part of cluster)  to be connected to gateway. There should not be dhcp server in this network. This is called as **uplink network**.
     and it is L2 network per se.
   - Each node can have a disk for local storage. ::zfs .
   - Each node need to have a disk if you want to have distributed storage. ::ceph .
-  - Please ensure that all your nodes will have distinct hostnames .  
+  - Please ensure that all your nodes have distinct hostnames .  
 
-## Cleaning Up previous microcloud setup related snaps
+## Cleaning Up old installation of microcloud related snaps
 **Note-:**
-This is also the  most common thing reuqired currently to handle any kind of error
+This is also the  most common thing reuqired(currently) to handle any kind of error
 during microcloud setup.
 
 ```
@@ -26,7 +26,7 @@ snap remove --purge microcloud
 
 ## Bring the network interfaces Up for the distrib netwroking to work 
 
-These commands should be adapted as per network interface names
+Please change interface names in the following commands as per your setup.
 
 ```
 ip link set up eth0
@@ -78,11 +78,13 @@ microcloud init
   miroovn cluster list
   ```
 
-Once the cluster is ready you can install lxd containers or VMs
+Once the cluster is ready you can install lxd containers or VMs. Those are just common lxd commands . You can also specify whether container instances whould be on local storage or distributed storage.
 
 
 ## Creating network forward for UPLINK network of your microcloud setup
-
+**Note**
+  Creating network forward is one way of making applications running inside the Mcloud containers to be accessible to external world.
+  
 Following are the steps
 
 1. ``` lxc network edit UPLINK ```
@@ -125,7 +127,7 @@ location: ""
 
 ## Running some workload on Microcloud
 
-- This particular example demonstrate a workload where webservices for controlling matter home automation devices running under lxc containers.
+- This particular example demonstrate a workload where web-services for controlling matter home automation devices running under lxc containers.
 
 - One web service for commissioning matter devices.
 
@@ -133,40 +135,38 @@ location: ""
 
 - These web services are part of a snap and the code is [here](https://github.com/prash813/matter-mqtt-demo-service.git)
 
-- These services are meant to communicate to matter [chip-tool](https://snapcraft.io/chip-tool) running on RPi board to manage smart home matter devices
+- These services are meant to communicate to matter controller; [chip-tool](https://snapcraft.io/chip-tool) running on RPi board(acts as Matter Hub) to manage smart home matter devices
 - For the communication glue there is mqtt broker.
 - mqtt broker runs inside the container on microcloud.
-- The web services running in container publish their commands on the mqtt.
+- The web services running in Mcloud container publish their commands on the mqtt.
 - RPI subscribes to these commands and then execute the chip tool for controlling matter devices.
 - mqtt subscription part and executing chip-tool is part of a snap , code is [here](https://github.com/prash813/matter-mqtt-demo-client.git).
 
 
 
 
-
-
-
-# SOME SETUP OF MATTER-HAUTO-WEB-UI DEMO 
+# SOME SETUP OF MATTER-HAUTO-WEB-UI 
 This functionality is provided by [matter-hauto-demo server side snap](https://github.com/prash813/matter-mqtt-demo-service.git) 
-1. Dependent on core22 snap.
-2. Make connections. 
+1. This snap will be installed insode Mcloud container
+2. Dependent on core22 snap.
+3. Make connections. 
 ``` snap connect  matter-hauto-demo:network-control ```
-3. Make sure that you copy following matter device config files to snap dirs. Please note that these are just sample json files for configs of the matter 
+4. Make sure that you copy following matter device config files to snap dirs. Please note that these are just sample json files for configs of the matter 
    devices which are part of demo.  
 ``` cp devicelist1.json /var/snap/matter-hauto-demo/current/mnt/devicelist.json ```
 ``` cp opmodes1.json /var/snap/matter-hauto-demo/current/mnt/opmodes.json ```
-4 Make sure  to set forwardedip configuration of snap e.g.
+5. Make sure  to set ```forwardedip``` configuration of snap e.g.
  ```
  snap set matter-hauto-demo forwardedip=192.168.3.31
 ```
 The ip used for the above variable is based on network forward created few steps before.
 
-5. Install mqtt and core18 snaps. Make sure you edit the config of mqtt at location
+6. Install mqtt and core18 snaps. Make sure you edit the config of mqtt at location
 ```
 /var/snap/mosquitto/common/mosquitto.conf
 
 ```
-with Following config items
+and add following config items
 
 
 ```
@@ -177,15 +177,16 @@ listener 1883 10.80.130.2
 ```
 listener address is IP address that lxc container gets from lxd networking framework like ovn or ubuntu fan.
 
-6. Run matter-hauto-demo.matterdemo (if this is not the service in a [matter-hauto-demo server side snap](https://github.com/prash813/matter-mqtt-demo-service.git)).
+7. Run ```matter-hauto-demo.matterdemo``` (if this is not the service in a [matter-hauto-demo server side snap](https://github.com/prash813/matter-mqtt-demo-service.git)).
+8. You can access this service over browser from any PC in the uplink network of Mcloud using URL as printed on the terminal by the command in the previous step. 
 
 
 # SETUP ON MATTER HUB DEVICE (RPi board) 
 
 ## OTBR-snap setup
-1. connect all the interfaces
-2. set appropriate value for infra-iface
-3. please execute following steps
+1. Install otbr-snap and connect all the interfaces
+2. Set appropriate value for ```infra-iface``` snap config variable
+3. Please execute following steps
 ```
 	otbr-snap.ot-ctl dataset init new
 	otbr-snap.ot-ctl dataset commit active
@@ -196,7 +197,7 @@ listener address is IP address that lxc container gets from lxd networking frame
 	otbr-snap.ot-ctl netdata show
 	otbr-snap.ot-ctl ipaddr
 	otbr-snap.ot-ctl dataset active -x
-
+4. For more details on otbr-snap and its setup please take a look at this [repo](https://github.com/prash813/otbr-snap). 
 
 ```
 ## setting matter mqtt client
@@ -211,12 +212,12 @@ ip route add  192.168.3.254 dev eth0
 ip route add default via 192.168.3.254
 
 ```
-2. install and set chip-tool properly.
+2. install and set [chip-tool](https://github.com/prash813/chip-tool-snap/tree/chip-tool-1002) snap properly.
 
 3. copy devicelist.json and opmodes.json to ``` /var/snap/matter-hauto-demo/current/mnt/ ``` .
 4. copy pemcerts to ``` /var/snap/matter-hauto-demo/common/pemcerts/ ``` .
 
-5. Before executing mqtt matter client on RPi please ensure that following configs has been set.
+5. Before executing mqtt matter client on RPi please ensure that following configs has been set. Note that values can be different.
 ```
 Key           Value
 debug         false
