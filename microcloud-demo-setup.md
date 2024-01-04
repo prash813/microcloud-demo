@@ -78,7 +78,7 @@ microcloud init
   miroovn cluster list
   ```
 
-Once the cluster is ready you can install lxd containers or VMs. Those are just common lxd commands . You can also specify whether container instances whould be on local storage or distributed storage.
+Once the cluster is ready you can install lxd containers or VMs. Those are just common lxd commands e.g. ```lxc launch images:ubuntu/22.04 u2204```. You can also specify whether container instances whould be on local storage or distributed storage.
 
 
 ## Creating network forward for UPLINK network of your microcloud setup
